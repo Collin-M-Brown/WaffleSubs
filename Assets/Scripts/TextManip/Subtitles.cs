@@ -14,6 +14,7 @@ public class Subtitles : MonoBehaviour {
     [SerializeField] private GameObject backgroundBoxObject;
     [SerializeField] string baseColor = "FFFFFF";
     [SerializeField] string tailColor = "FFFFFF";
+    [SerializeField] DraggablePressHoldButton backgroundDragScript;
     static readonly string prefix = "<color=#";
     static readonly string suffix = "</color>";
     
@@ -102,6 +103,7 @@ public class Subtitles : MonoBehaviour {
         visualBoxTransform = new Transformation(backgroundBoxObject.GetComponent<RectTransform>());
         textMaskTransform = new Transformation(textMaskObject.GetComponent<RectTransform>());
         backgroundImage = backgroundBoxObject.GetComponent<Image>();
+        // backgroundDragScript = backgroundBoxObject.GetComponent<DraggablePressHoldButton>();
         
         SetSize(UIMenu.Instance.GetTextSize());
         SetMaxLength(1000);
@@ -110,6 +112,7 @@ public class Subtitles : MonoBehaviour {
         SetHeight(UIMenu.Instance.GetTextHeight());
         SetBaseColor(UIMenu.Instance.GetBaseTextColor());
         SetTailColor(UIMenu.Instance.GetTailTextColor());
+        SetBackgroundColor(UIMenu.Instance.GetTextBackgroundColor());
         // SetColor(UIMenu.Instance.GetTextColor());
         
         StartCoroutine(CheckCharacterDuration());
@@ -252,7 +255,7 @@ public class Subtitles : MonoBehaviour {
     }
     
     public void SetTailColor(string hexColor) {
-        tailColor = hexColor;
+        tailColor = hexColor + ">";
     }
     
     public void ClearText() {
@@ -263,6 +266,16 @@ public class Subtitles : MonoBehaviour {
     public void ToggleBackGroundImage(bool enabled) {
         if (started) 
             backgroundImage.enabled = enabled;
+    }
+    
+    public void SetBackgroundColor(Color color) {
+        Debug.Log($"setting background image color {color.ToString()}");
+        if (backgroundImage != null && backgroundImage.enabled)
+            backgroundImage.color = color;
+    }
+
+    public void SetDraggable(bool enabled) {
+        backgroundDragScript.enabled = enabled;
     }
     
     private bool IsTextOverflowing() {

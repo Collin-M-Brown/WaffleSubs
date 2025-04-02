@@ -5,8 +5,9 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System;
 using TMPro;
+using static ColorTools;
 using UnityEngine.Events;
-#pragma warning disable CS0162 // Unreachable code detected
+
 
 /*
 TODO: 
@@ -24,42 +25,50 @@ public class UIMenu : MonoBehaviour {
             Instance = this;
     }
 
-    public TMP_Dropdown microphoneDropdown;
-    public Button micOnButton;
-    public Button micOffButton;
+    [SerializeField] private TMP_Dropdown microphoneDropdown;
     [SerializeField] private SettingSlider textSize;
     [SerializeField] private SettingSlider textWidth;
     [SerializeField] private SettingSlider textHeight;
     [SerializeField] private SettingSlider textDuration;
+    
     [SerializeField] private TMP_InputField baseColorInputField;
     [SerializeField] private TMP_InputField tailColorInputField;
+    [SerializeField] private TMP_InputField backgroundColorInputField;
     [SerializeField] private TMP_InputField apiKeyInput;
+    
+    [SerializeField] private Button micOnButton;
+    [SerializeField] private Button micOffButton;
     [SerializeField] private Button clearTextButton;
-    [SerializeField] private Button toggleBackgroundButton;
     [SerializeField] private Button hideUIButton;
     [SerializeField] private Button exitButton;
     [SerializeField] private Button testButton;
+    
     [SerializeField] private Toggle alwaysOnTopToggle;
+    [SerializeField] private Toggle backgroundToggle;
     [SerializeField] private Subtitles subtitles;
+    [SerializeField] private Image textBackgroundImage;
 
     void Start() {
         textSize.Init(OnTextSizeChanged, 0.01f, 5, 2, PlayerPrefs.GetFloat("textSize", 1));
         textWidth.Init(OnTextWidthChanged, 0.1f, 5f, 2, PlayerPrefs.GetFloat("textWidth", 1f));
         textHeight.Init(OnTextHeightChanged, 0.1f, 5f, 2, PlayerPrefs.GetFloat("textHeight", 1f));
         textDuration.Init(OnTextDurationChanged, 0, 30, 0, PlayerPrefs.GetFloat("textDuration", 0));
+        
         baseColorInputField.onValueChanged.AddListener(OnBaseColorChanged);
         tailColorInputField.onValueChanged.AddListener(OnTailColorChanged);
+        backgroundColorInputField.onValueChanged.AddListener(OnTextBackgroundColorChanged);
         
         apiKeyInput.contentType = TMP_InputField.ContentType.Password;
         apiKeyInput.ForceLabelUpdate();
         apiKeyInput.onValueChanged.AddListener(OnApiKeyChanged);
         
         clearTextButton.onClick.AddListener(OnClearTextPushed);
-        toggleBackgroundButton.onClick.AddListener(OnToggleBackgroundPushed);
         hideUIButton.onClick.AddListener(Deactivate);
         exitButton.onClick.AddListener(OnExitPushed);
         testButton.onClick.AddListener(OnTestPushed);
+        
         alwaysOnTopToggle.onValueChanged.AddListener(OnAlwayOnTopToggleChanged);
+        backgroundToggle.onValueChanged.AddListener(OnTextBackgroundToggleChanged);
         
         micOnButton.onClick.AddListener(PushMicConnectRequest);
         micOffButton.onClick.AddListener(PushMicDisconnectRequest);
@@ -69,7 +78,11 @@ public class UIMenu : MonoBehaviour {
         InitializeMicrophoneValue();
         PushMicDisconnectRequest();
         
-        OnAlwayOnTopToggleChanged(PlayerPrefs.GetInt("AlwaysOnTop", 1) == 1 ? true : false);
+        alwaysOnTopToggle.isOn = GetAlwaysOnTop();
+        backgroundToggle.isOn = GetTextBackgroundEnabled();
+        baseColorInputField.text = GetBaseTextColor();
+        tailColorInputField.text = GetTailTextColor();
+        backgroundColorInputField.text = ColorToHex(GetTextBackgroundColor());
     }
     
     private void PopulateDropdown(TMPro.TMP_Dropdown dropdown) {
@@ -191,7 +204,12 @@ public class UIMenu : MonoBehaviour {
     }
     
     public string GetTailTextColor() {
-        return PlayerPrefs.GetString("TailTextColor", "1dde2d>");
+        return PlayerPrefs.GetString("TailTextColor", "1dde2d");
+    }
+    
+    public Color GetTextBackgroundColor() {
+        var colorString = PlayerPrefs.GetString("TextBackgroundColor", "00000080");
+        return HexToColor(colorString);
     }
     
     private void OnTextSizeChanged(float value) {
@@ -233,17 +251,35 @@ public class UIMenu : MonoBehaviour {
     private void OnTailColorChanged(string value) {
         if (value.Length > 6) {
             value = value.Substring(0, 6);
-            baseColorInputField.text = value;
+            tailColorInputField.text = value;
             return;
         }
         if (value.Length < 6) {
             int missingChars = 6 - value.Length;
             value = value + new string('F', missingChars);
-            baseColorInputField.text = value;
+            tailColorInputField.text = value;
             return;
         }
-        PlayerPrefs.SetString("TailTextColor", value + ">");
-        subtitles.SetTailColor(value + ">");
+        
+        PlayerPrefs.SetString("TailTextColor", value);
+        subtitles.SetTailColor(value);
+    }
+    
+    private void OnTextBackgroundColorChanged(string value) {
+        if (value.Length > 8) {
+            value = value.Substring(0, 8);
+            backgroundColorInputField.text = value;
+            return;
+        }
+        if (value.Length < 8) {
+            int missingChars = 8 - value.Length;
+            value = value + new string('F', missingChars);
+            backgroundColorInputField.text = value;
+            return;
+        }
+        
+        PlayerPrefs.SetString("TextBackgroundColor", value);
+        subtitles.SetBackgroundColor(HexToColor(value));
     }
 
     private void OnApiKeyChanged(string value) {
@@ -254,10 +290,6 @@ public class UIMenu : MonoBehaviour {
         subtitles.ClearText();
     }
     
-    private void OnToggleBackgroundPushed() {
-        // subtitles.ToggleBackGroundImage();
-    }
-    
     private void OnExitPushed() {
         ExitGame.Instance.Exit();
     }
@@ -266,20 +298,34 @@ public class UIMenu : MonoBehaviour {
         subtitles.AddText("this is some test text this is some test text", true);
     }
     
+    public bool GetAlwaysOnTop() {
+        return PlayerPrefs.GetInt("AlwaysOnTop", 1) == 1 ? true : false;
+    }
+    
     private void OnAlwayOnTopToggleChanged(bool value) {
         WaffleTransparency.Instance.SetAlwaysOnTop(value);
         PlayerPrefs.SetInt("AlwaysOnTop", value ? 1 : 0);
     }
     
+    private bool GetTextBackgroundEnabled() {
+        return PlayerPrefs.GetInt("BackgroundOn", 1) == 1 ? true : false;
+    }
+
+    private void OnTextBackgroundToggleChanged(bool value) {
+        PlayerPrefs.SetInt("BackgroundOn", value ? 1 : 0);
+    }
+    
     public void Activate() {
         WaffleTransparency.Instance.SetClickthrough(false);
         subtitles.ToggleBackGroundImage(true);
+        subtitles.SetDraggable(true);
         gameObject.SetActive(true);
     }
     
     public void Deactivate() {
         WaffleTransparency.Instance.SetClickthrough(true);
-        subtitles.ToggleBackGroundImage(false);
+        subtitles.ToggleBackGroundImage(backgroundToggle.isOn);
+        subtitles.SetDraggable(false);
         gameObject.SetActive(false);
     }
     

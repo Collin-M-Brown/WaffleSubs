@@ -8,6 +8,8 @@ public class Transformation {
     RectTransform rectTransform;
     Vector3 initialScale;
     Vector2 initialSizeDelta;
+    float widthMod = 1f;
+    float heightMod = 1f;
     public Transformation(RectTransform rectTransform) {
         this.rectTransform = rectTransform;
         initialScale = rectTransform.localScale;
@@ -19,11 +21,13 @@ public class Transformation {
     }
     
     public void ScaleWidth(float modifier) {
-        rectTransform.sizeDelta = new Vector2(initialSizeDelta.x * modifier, initialSizeDelta.y);
+        widthMod = modifier;
+        rectTransform.sizeDelta = new Vector2(initialSizeDelta.x * modifier, initialSizeDelta.y * heightMod);
     }
     
     public void ScaleHeight(float modifier) {
-        rectTransform.sizeDelta = new Vector2(initialSizeDelta.x, initialSizeDelta.y * modifier);
+        heightMod = modifier;
+        rectTransform.sizeDelta = new Vector2(initialSizeDelta.x * widthMod, initialSizeDelta.y * modifier);
     }
 
 }
