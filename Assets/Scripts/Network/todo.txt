@@ -1,0 +1,10 @@
+
+
+
+input for:
+
+- max length
+- delay
+- hide but show subs
+- resize
+- api key thats censored
